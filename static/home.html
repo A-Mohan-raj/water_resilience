@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bannari Amman Campus – AI Water Pipeline Digital Twin</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #060913;
+  --surface: #0c1222;
+  --surface-alt: #131c31;
+  --border: #1e2c47;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent: #38bdf8;
+  --green: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.25);
+  --green-bg: rgba(16, 185, 129, 0.08);
+  --red: #ef4444;
+  --red-mild: #f87171;
+  --red-glow: rgba(239, 68, 68, 0.35);
+  --red-bg: rgba(239, 68, 68, 0.12);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --purple: #c084fc;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* BLUEPRINT GRID BACKGROUND */
+.blueprint-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: 
+    linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* HEADER */
+header {
+  position: relative;
+  z-index: 10;
+  background: rgba(6, 9, 19, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.brand-box h1 {
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-box h1 span.highlight {
+  color: var(--accent);
+}
+.brand-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-res { background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid #0284c7; }
+.badge-leak { background: var(--red-bg); color: var(--red-mild); border: 1px solid var(--red); animation: pulseAlert 2s infinite; }
+.badge-normal { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+
+@keyframes pulseAlert {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+.btn-diagnose {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #fff;
+  border: 1px solid #38bdf8;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
+  transition: all 0.2s ease;
+}
+.btn-diagnose:hover {
+  background: linear-gradient(135deg, #0369a1, #0284c7);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
+}
+
+/* MAIN CONTENT */
+main {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  padding: 24px 32px;
+  max-width: 1560px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* TOP NOTICE & LEGEND */
+.legend-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.legend-items {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.legend-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot-green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.dot-red { background: var(--red); box-shadow: 0 0 10px var(--red); animation: pulseAlert 1.5s infinite; }
+.dot-amber { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+.dot-purple { background: var(--purple); }
+
+/* SCHEMATIC DIAGRAM CONTAINER */
+.schematic-canvas {
+  position: relative;
+  background: #080d1a;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+
+/* SVG PIPELINE OVERLAY */
+.pipeline-svg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* CENTRAL WATER HUB */
+.hub-row {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  margin-bottom: 50px;
+}
+.central-hub {
+  background: linear-gradient(180deg, #0f172a, #1e293b);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.25);
+  border-radius: 14px;
+  padding: 18px 36px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.central-hub:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 40px rgba(56, 189, 248, 0.4);
+}
+.central-hub h2 {
+  font-size: 1.25rem;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.central-hub .hub-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* CAMPUS BLOCKS GRID */
+.campus-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  position: relative;
+  z-index: 2;
+}
+@media (max-width: 1100px) {
+  .campus-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .campus-grid { grid-template-columns: 1fr; }
+}
+
+/* CAMPUS BLOCK CARD */
+.campus-block {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  border: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 220px;
+}
+
+/* NORMAL BLOCK STYLE */
+.campus-block.normal {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.05), var(--surface));
+}
+.campus-block.normal:hover {
+  transform: translateY(-4px);
+  border-color: var(--green);
+  box-shadow: 0 10px 30px var(--green-glow);
+}
+
+/* LEAK BLOCK STYLE (MILD RED PULSING) */
+.campus-block.leak {
+  border-color: var(--red);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.16), var(--surface));
+  box-shadow: 0 0 25px var(--red-glow);
+  animation: borderPulse 2s infinite;
+}
+.campus-block.leak:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 36px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes borderPulse {
+  0%, 100% { border-color: #ef4444; }
+  50% { border-color: #f87171; }
+}
+
+/* SENSOR FAULT BLOCK */
+.campus-block.sensor_fault {
+  border-color: var(--warning);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), var(--surface));
+}
+
+.block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.block-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.block-code {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.lock-tag {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid var(--purple);
+  color: #d8b4fe;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* STATUS CHIP */
+.status-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+}
+.status-chip.normal {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.status-chip.leak {
+  background: var(--red-bg);
+  color: var(--red-mild);
+  border: 1px solid var(--red);
+}
+.status-chip.sensor_fault {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+/* TELEMETRY READOUTS */
+.telemetry-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+.readout {
+  background: rgba(0,0,0,0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+.readout-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.readout-val {
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.click-cue {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.campus-block:hover .click-cue {
+  text-decoration: underline;
+}
+
+/* PRESET QUICK JUMP BAR */
+.preset-bar {
+  margin-top: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.preset-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.btn-preset {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-preset:hover {
+  background: #1e2c47;
+  border-color: var(--accent);
+}
+</style>
+</head>
+<body>
+
+<div class="blueprint-bg"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="brand-box">
+    <h1>🏛️ Bannari Amman <span class="highlight">Campus Water Digital Twin</span></h1>
+    <div class="brand-subtitle">AI-Powered Hydro-Acoustic Pipeline Resilience & Leak Detection Network</div>
+  </div>
+
+  <div class="header-actions">
+    <div class="badge badge-res" id="h-res">Reservoir: --%</div>
+    <div class="badge badge-normal" id="h-anom">Active Leaks: 0</div>
+    <a href="/diagnose" class="btn-diagnose">
+      <span>🔍 Open Problem Diagnosing Page</span>
+      <span>➔</span>
+    </a>
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main>
+
+  <!-- LEGEND & OVERVIEW -->
+  <div class="legend-bar">
+    <div class="legend-items">
+      <div class="legend-pill"><span class="dot dot-green"></span> <span>Normal Pipeline & Block</span></div>
+      <div class="legend-pill"><span class="dot dot-red"></span> <span>Detected Pipeline Leak (Mild Red)</span></div>
+      <div class="legend-pill"><span class="dot dot-amber"></span> <span>Sensor Anomaly</span></div>
+      <div class="legend-pill"><span class="dot dot-purple"></span> <span>Ethical Guardrail (Tier-1 Locked)</span></div>
+    </div>
+    <div style="font-size:0.85rem; color:var(--text-muted);">
+      💡 Click on any leaking or normal block to diagnose root cause and dispatch repair crews.
+    </div>
+  </div>
+
+  <!-- BANNARI AMMAN PIPELINE NETWORK DIAGRAM -->
+  <div class="schematic-canvas" id="schematic-area">
+
+    <!-- SVG PIPELINE CONNECTOR LINES -->
+    <svg class="pipeline-svg" id="pipe-svg">
+      <defs>
+        <!-- Flow animations -->
+        <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+        <filter id="glow-red" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
+      <!-- Dynamic pipeline paths will be drawn here -->
+      <g id="pipe-paths"></g>
+    </svg>
+
+    <!-- CENTRAL OHT RESERVOIR HUB -->
+    <div class="hub-row">
+      <div class="central-hub" id="hub-node" onclick="goToDiagnose()">
+        <h2>🏢 Central OHT Pumping Station & Reservoir</h2>
+        <div class="hub-meta">Campus Bulk Municipal Intake · 2,000 kL Central Reserve · STP Greywater Recirculation</div>
+        <div style="margin-top:6px; font-size:0.8rem; color:var(--accent);">Click to view Campus Distribution Optimization (Linprog Highs) ➔</div>
+      </div>
+    </div>
+
+    <!-- 6 CAMPUS BLOCKS (ROW 1: TIER 1, ROW 2: TIERS 2 & 3) -->
+    <div class="campus-grid" id="campus-blocks-container">
+      <!-- Injected via JavaScript from live /api/state -->
+    </div>
+
+  </div>
+
+  <!-- PRESET DEMO BAR FOR HACKATHON JURY -->
+  <div class="preset-bar">
+    <div style="font-size:0.9rem; font-weight:800; color:var(--accent);">
+      ⚡ Quick Jury Showcase Triggers:
+    </div>
+    <div class="preset-buttons">
+      <button class="btn-preset" onclick="triggerPreset('preset_a')">
+        🔴 Preset A: Leak in Zone C2 (Student Hostels)
+      </button>
+      <button class="btn-preset" onclick="triggerPreset('preset_b')">
+        ⚠️ Preset B: Heatwave + 40% Supply Cut (RED Escalation)
+      </button>
+      <button class="btn-preset" onclick="triggerPreset('preset_c')">
+        🌧️ Preset C: Rain Forecast Cancels Irrigation
+      </button>
+      <button class="btn-preset" onclick="triggerReset()">
+        ↺ Reset to Baseline (Oct 1)
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+let currentState = null;
+
+async function loadData() {
+  try {
+    const res = await fetch('/api/state');
+    currentState = await res.json();
+    renderSchematic(currentState);
+    updateHeaderStats(currentState);
+    setTimeout(drawPipes, 80);
+  } catch (e) {
+    console.error('Failed to load telemetry:', e);
+  }
+}
+
+function updateHeaderStats(s) {
+  const r = s.reservoir;
+  const resBadge = document.getElementById('h-res');
+  resBadge.textContent = `Reservoir: ${r.current_level_pct}% (${r.days_to_25pct >= 90 ? '90+ d' : r.days_to_25pct + 'd'})`;
+  if (r.current_level_pct <= 25) {
+    resBadge.className = 'badge badge-leak';
+  } else {
+    resBadge.className = 'badge badge-res';
+  }
+
+  const leaksCount = s.repairs.filter(rep => rep.cause === 'leak').length;
+  const anomBadge = document.getElementById('h-anom');
+  if (leaksCount > 0) {
+    anomBadge.textContent = `⚠️ ${leaksCount} Active Pipe Leak${leaksCount>1?'s':''}`;
+    anomBadge.className = 'badge badge-leak';
+  } else {
+    anomBadge.textContent = `✓ 0 Leaks (Network Normal)`;
+    anomBadge.className = 'badge badge-normal';
+  }
+}
+
+function renderSchematic(s) {
+  const container = document.getElementById('campus-blocks-container');
+  container.innerHTML = s.zone_status.map(z => {
+    const isLeak = z.pred_cause === 'leak';
+    const isSensor = z.pred_cause === 'sensor_fault';
+    const isNormal = z.pred_cause === 'normal';
+
+    const cardClass = isLeak ? 'leak' : (isSensor ? 'sensor_fault' : 'normal');
+    const cleanName = z.zone_name.replace(/_/g, ' ');
+    const statusText = isLeak ? '🔴 PIPELINE LEAK' : (isSensor ? '🟠 SENSOR FAULT' : '🟢 NORMAL FLOW');
+
+    return `
+      <div class="campus-block ${cardClass}" id="block-${z.zone_id}" onclick="goToDiagnose('${z.zone_id}')" title="Click to view full diagnosis and dispatch plumbers">
+        <div>
+          <div class="block-header">
+            <div>
+              <div class="block-title">${cleanName}</div>
+              <div class="block-code">${z.zone_id} · Tier ${z.vulnerability_tier} · ${z.pipe_material}</div>
+            </div>
+            ${z.ethical_guardrail_locked ? '<div class="lock-tag">🔒 GUARDRAIL</div>' : ''}
+          </div>
+
+          <div class="status-chip ${cardClass}">
+            <span>${statusText}</span>
+            <span>${z.confidence}% Conf</span>
+          </div>
+
+          <div class="telemetry-row">
+            <div class="readout">
+              <div class="readout-label">Flow Rate</div>
+              <div class="readout-val" style="color:${isLeak?'var(--red-mild)':'var(--text-main)'};">
+                ${z.flow_rate_lpm} <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted)">/ ${z.expected_baseline_flow_lpm} LPM</span>
+              </div>
+            </div>
+            <div class="readout">
+              <div class="readout-label">Pressure</div>
+              <div class="readout-val">${z.pressure_psi} psi</div>
+            </div>
+            <div class="readout">
+              <div class="readout-label">Acoustic Vibration</div>
+              <div class="readout-val">${z.acoustic_vibration_db} dB</div>
+            </div>
+            <div class="readout">
+              <div class="readout-label">Tank Mass Loss</div>
+              <div class="readout-val">${z.oht_mass_balance_loss_pct}%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="click-cue">
+          <span>🔍 Inspect Root Cause & Actions</span>
+          <span>➔</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// DRAW CONNECTING PIPELINES FROM CENTRAL HUB TO EACH BLOCK
+function drawPipes() {
+  const hub = document.getElementById('hub-node');
+  const svg = document.getElementById('pipe-paths');
+  const canvas = document.getElementById('schematic-area');
+  if (!hub || !svg || !canvas || !currentState) return;
+
+  const canvasRect = canvas.getBoundingClientRect();
+  const hubRect = hub.getBoundingClientRect();
+
+  const hubX = (hubRect.left + hubRect.width / 2) - canvasRect.left;
+  const hubY = (hubRect.bottom) - canvasRect.top;
+
+  let pathHtml = '';
+
+  currentState.zone_status.forEach(z => {
+    const block = document.getElementById('block-' + z.zone_id);
+    if (!block) return;
+
+    const blockRect = block.getBoundingClientRect();
+    const blockX = (blockRect.left + blockRect.width / 2) - canvasRect.left;
+    const blockY = (blockRect.top) - canvasRect.top;
+
+    const isLeak = z.pred_cause === 'leak';
+    const strokeColor = isLeak ? '#ef4444' : '#10b981';
+    const strokeWidth = isLeak ? '4' : '2.5';
+    const filter = isLeak ? 'url(#glow-red)' : 'url(#glow-green)';
+    const dashArray = isLeak ? 'none' : '6,4';
+
+    // Cubic bezier pipeline path
+    const cpY = hubY + (blockY - hubY) * 0.5;
+    const d = `M ${hubX} ${hubY} C ${hubX} ${cpY}, ${blockX} ${cpY}, ${blockX} ${blockY}`;
+
+    pathHtml += `
+      <path d="${d}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" 
+            stroke-dasharray="${dashArray}" filter="${filter}" opacity="${isLeak ? '1.0' : '0.6'}" />
+    `;
+
+    // If leaking, add leak ping circle
+    if (isLeak) {
+      const midX = (hubX + blockX) / 2;
+      const midY = (hubY + blockY) / 2;
+      pathHtml += `
+        <circle cx="${midX}" cy="${midY}" r="7" fill="#ef4444">
+          <animate attributeName="r" values="4;14;4" dur="1.5s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1;0.2;1" dur="1.5s" repeatCount="indefinite" />
+        </circle>
+        <text x="${midX + 16}" y="${midY + 4}" fill="#f87171" font-size="11" font-weight="800">PIPE LEAK</text>
+      `;
+    }
+  });
+
+  svg.innerHTML = pathHtml;
+}
+
+window.addEventListener('resize', drawPipes);
+
+function goToDiagnose(zoneId) {
+  if (zoneId) {
+    window.location.href = `/diagnose?zone=${zoneId}`;
+  } else {
+    window.location.href = '/diagnose';
+  }
+}
+
+async function triggerPreset(presetKey) {
+  await fetch('/api/preset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ preset: presetKey })
+  });
+  loadData();
+}
+
+async function triggerReset() {
+  await fetch('/api/scenario/clear', { method: 'POST' });
+  await fetch('/api/reset', { method: 'POST' });
+  loadData();
+}
+
+// Initial telemetry fetch
+loadData();
+</script>
+</body>
+</html>
+

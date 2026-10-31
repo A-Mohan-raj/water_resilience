@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI for Water Resilience – Campus Decision Intelligence</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #070b14;
+  --surface: #101726;
+  --surface-alt: #162033;
+  --surface-hover: #1c2b45;
+  --border: #22314a;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.15);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --purple: #a855f7;
+  --font-base: 15px;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--font-base);
+  background: var(--bg);
+  color: var(--text-main);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* TOP BAR (MISSION CONTROL STYLE) */
+.topbar {
+  background: #050811;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+}
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.brand-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.badge-synthetic { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid #7e22ce; }
+.badge-llm-live { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #059669; }
+.badge-llm-fallback { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid #b45309; }
+.badge-low { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+.badge-medium { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid var(--warning); }
+.badge-high { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+
+/* CONTROLS CLUSTER */
+.actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.clock-display {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  border-radius: 6px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.btn {
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+.btn-primary { background: var(--accent); color: #030712; border-color: var(--accent); }
+.btn-primary:hover { background: #7dd3fc; }
+.btn-success { background: var(--success); color: #022c10; border-color: var(--success); }
+.btn-danger { background: var(--danger); color: #ffffff; border-color: var(--danger); }
+.btn-warning { background: var(--warning); color: #3b1f02; border-color: var(--warning); }
+.btn-sm { font-size: 0.8rem; padding: 4px 10px; }
+
+/* RED ESCALATION WARNING BANNER */
+.escalation-banner {
+  display: none;
+  background: linear-gradient(90deg, #7f1d1d, #991b1b);
+  border-bottom: 2px solid #ef4444;
+  color: #fef2f2;
+  padding: 12px 24px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+}
+.escalation-banner.active { display: block; }
+
+/* CONTAINER & TABS */
+.container {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+.tabs-nav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+.tab-btn {
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tab-btn:hover { color: var(--text-main); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* SECTION HEADINGS */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.section-header h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* BALANCED 3x2 ZONE GRID */
+.grid-zones {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1200px) {
+  .grid-zones { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .grid-zones { grid-template-columns: 1fr; }
+}
+
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.grid-3col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 992px) {
+  .grid-2col { grid-template-columns: 1fr; }
+}
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+/* ZONE CARD WITH ROBUST NO-OVERLAP HEADER */
+.zone-card {
+  border-left: 5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.zone-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+.zone-card.leak { border-left-color: var(--danger); }
+.zone-card.demand_spike { border-left-color: var(--warning); }
+.zone-card.sensor_fault { border-left-color: #f97316; }
+.zone-card.normal { border-left-color: var(--success); }
+
+.zone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.zone-title-box {
+  flex: 1;
+  min-width: 0; /* Prevents overflow */
+}
+.zone-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.3;
+  word-break: break-word;
+}
+.zone-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.lock-pill {
+  flex-shrink: 0;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid var(--purple);
+  color: #d8b4fe;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.zone-diagnosis {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-alt);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.diag-cause {
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+}
+.diag-cause.leak { color: var(--danger); }
+.diag-cause.demand_spike { color: var(--warning); }
+.diag-cause.sensor_fault { color: #f97316; }
+.diag-cause.normal { color: var(--success); }
+.diag-conf {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.zone-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+.stat-item {
+  background: rgba(0,0,0,0.2);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.stat-val {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* DECISION QUEUE CARDS */
+.decision-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--accent);
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.decision-card.leak { border-left-color: var(--danger); }
+.decision-card.demand_spike { border-left-color: var(--warning); }
+.decision-card.sensor_fault { border-left-color: #f97316; }
+.decision-card.decided { opacity: 0.85; border-color: #334155; }
+.formula-box {
+  background: #070e1c;
+  border: 1px dashed #38bdf8;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  color: #7dd3fc;
+  margin: 8px 0;
+}
+.assumptions-box {
+  background: rgba(15, 23, 42, 0.6);
+  border-left: 3px solid var(--purple);
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 6px 0;
+}
+.evidence-list {
+  list-style: none;
+  font-size: 0.86rem;
+  margin: 8px 0;
+}
+.evidence-list li {
+  padding: 2px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.comms-output {
+  background: #030712;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  color: #e2e8f0;
+}
+
+/* TABLES */
+.table-wrap {
+  overflow-x: auto;
+}
+table.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+table.styled-table th {
+  background: var(--surface-alt);
+  color: var(--text-main);
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  border-bottom: 2px solid var(--border);
+}
+table.styled-table td {
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--border);
+}
+table.styled-table tr:hover { background: rgba(255,255,255,0.02); }
+
+/* SCENARIO DIFF PANEL */
+.diff-panel {
+  background: #0f172a;
+  border: 2px solid var(--warning);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.diff-badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+}
+
+/* METRICS BOXES */
+.metric-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.metric-box .metric-value {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--accent);
+  margin: 2px 0;
+}
+.metric-box .metric-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.metric-box .metric-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* PRESET BUTTONS */
+.preset-cluster {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand-group">
+    <a href="/" class="btn btn-sm" style="background:#1e293b; color:#38bdf8; border:1px solid #0284c7; text-decoration:none;" title="Back to Bannari Amman Campus Schematic">
+      🏛️ ← Campus Map
+    </a>
+    <div class="brand-title">💧 AI for Water Resilience</div>
+    <span class="badge badge-synthetic">SYNTHETIC BENCHMARK</span>
+    <span class="badge badge-llm-fallback" id="llm-badge">LLM: checking…</span>
+  </div>
+
+  <div class="actions-group">
+    <div class="clock-display" id="clock-display">2026-10-01 00:00</div>
+    <span class="badge badge-low" id="res-badge">Reservoir: --%</span>
+    <span class="badge badge-low" id="shortage-badge">Shortage: -- days</span>
+
+    <!-- High-Impact Live Demo Cluster (replaces move forward / back) -->
+    <div class="demo-cluster" style="display:inline-flex; align-items:center; gap:6px;">
+      <button class="btn btn-primary" id="demoBtn" onclick="runDemoStep()" title="Click to cycle through key hackathon demo scenarios">
+        ⚡ Demo: Stage 1
+      </button>
+      <select id="demo-quick-select" onchange="onDemoSelect(this.value)" style="background:var(--surface-alt); color:var(--text-main); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:0.85rem; font-weight:700; cursor:pointer;" title="Jump directly to any demo scenario">
+        <option value="step">⚡ Auto Walkthrough Tour</option>
+        <option value="baseline" selected>1. Normal Baseline Ops</option>
+        <option value="preset_a">2. Preset A: Leak & Sensor Fault</option>
+        <option value="preset_c">3. Preset C: Rain Forecast Shutoff</option>
+        <option value="preset_b">4. Preset B: Heatwave & RED Escalation</option>
+      </select>
+    </div>
+
+    <button class="btn btn-sm" onclick="resetSim()" title="Reset to base state">↺ Reset</button>
+    <a href="/api/export_report" target="_blank" class="btn btn-sm btn-success">📄 Export Report</a>
+  </div>
+</div>
+
+<!-- RED ESCALATION WARNING BANNER -->
+<div class="escalation-banner" id="escalation-banner">
+  ⚠️ CRITICAL RED ESCALATION: 35% Supply Deficit Exceeded! Autonomous drafting suspended. Dual sign-off required: Dean of Campus Infrastructure + Estate Officer.
+</div>
+
+<div class="container">
+
+<!-- TABS NAVIGATION (SINGLE ROW, CLEAN LABELS) -->
+<div class="tabs-nav">
+  <div class="tab-btn active" data-tab="live-ops">📊 Operational Monitor</div>
+  <div class="tab-btn" data-tab="decisions-tab">📋 Decision Queue (<span id="pending-count">0</span>)</div>
+  <div class="tab-btn" data-tab="optimization-tab">🚰 Water Allocation (Linprog)</div>
+  <div class="tab-btn" data-tab="scenarios-tab">🧪 Scenarios & Presets</div>
+  <div class="tab-btn" data-tab="events-tab">🎉 Event Water Requests</div>
+  <div class="tab-btn" data-tab="metrics-tab">📈 Performance Metrics</div>
+</div>
+
+<!-- TAB 1: OPERATIONAL MONITOR -->
+<div class="tab-pane active" id="pane-live-ops">
+  <div class="section-header">
+    <h2>🏫 6 Campus Zones Telemetry & Diagnostic Status</h2>
+    <span style="color:var(--text-muted);font-size:0.85rem;">Models evaluate features ONLY (zero answer columns)</span>
+  </div>
+  <div class="grid-zones" id="zones-grid"></div>
+
+  <div class="section-header">
+    <h2>📈 48-Hour Hydro-Acoustic & Reservoir Forecast</h2>
+  </div>
+  <div class="grid-2col">
+    <div class="card">
+      <h3 style="font-size:1rem;margin-bottom:10px;color:var(--accent);">Zone_C1 Flow: Actual vs HistGradientBoosting Forecast</h3>
+      <div style="height:250px;position:relative;"><canvas id="flowChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:1rem;margin-bottom:10px;color:var(--accent);">Campus Central Reservoir Depletion Runway</h3>
+      <div style="height:250px;position:relative;"><canvas id="reservoirChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: DECISION QUEUE -->
+<div class="tab-pane" id="pane-decisions-tab">
+  <div class="section-header">
+    <h2>📋 Autonomous Decision Queue – Human-in-the-Loop Governance</h2>
+    <span style="color:var(--warning);font-weight:700;font-size:0.85rem;">Zero Auto-Execution: Every Valve, Pump & Dispatch Requires Human Approval</span>
+  </div>
+  <div id="decision-cards-container"></div>
+</div>
+
+<!-- TAB 3: OPTIMIZATION (LINPROG HIGHS) -->
+<div class="tab-pane" id="pane-optimization-tab">
+  <div class="section-header">
+    <h2>🚰 Water Distribution Allocation (Scipy Linprog Highs)</h2>
+    <div id="solver-badge" class="badge badge-low">Solver: Optimal</div>
+  </div>
+  <div class="card" style="margin-bottom:20px;">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:14px; font-size:0.9rem;">
+      <div><b>Total Campus Demand:</b> <span id="opt-demand">0</span> LPM</div>
+      <div><b>Available Freshwater:</b> <span id="opt-fresh">0</span> LPM</div>
+      <div><b>Protected Tier-1 Demand:</b> <span id="opt-tier1">0</span> LPM</div>
+      <div><b>Supply Deficit:</b> <span id="opt-deficit">0%</span> (Escalation Threshold: 35%)</div>
+    </div>
+    <div class="table-wrap">
+      <table class="styled-table" id="allocation-table">
+        <thead>
+          <tr>
+            <th>Zone</th>
+            <th>Vulnerability</th>
+            <th>Demand (LPM)</th>
+            <th>Freshwater Allocated</th>
+            <th>STP Greywater Substituted</th>
+            <th>Fulfilled %</th>
+            <th>Dispatch Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: JURY SURPRISE SCENARIOS -->
+<div class="tab-pane" id="pane-scenarios-tab">
+  <div class="section-header">
+    <h2>🧪 Jury Surprise Panel – Dynamic Re-Planning & Diff</h2>
+    <button class="btn btn-sm btn-danger" onclick="clearScenarios()">Clear All Scenarios</button>
+  </div>
+
+  <h3 style="font-size:1rem; margin-bottom:8px; color:var(--accent);">⚡ One-Click Hackathon Presets:</h3>
+  <div class="preset-cluster">
+    <button class="btn btn-warning btn-sm" onclick="runPreset('preset_a')">
+      📍 Preset A (2026-09-03 15:00): Leak in C2 + Sensor Fault in C5
+    </button>
+    <button class="btn btn-danger btn-sm" onclick="runPreset('preset_b')">
+      📍 Preset B (2026-09-30 14:00): Heatwave + 40% Supply Cut (RED Escalation)
+    </button>
+    <button class="btn btn-success btn-sm" onclick="runPreset('preset_c')">
+      📍 Preset C (2026-09-08 16:00): 84% Rain Forecast Preempts C6 Irrigation
+    </button>
+  </div>
+
+  <div class="grid-3col" style="margin-top:14px;">
+    <!-- Supply Cut Slider -->
+    <div class="card">
+      <h3 style="color:var(--accent);font-size:0.95rem;margin-bottom:6px;">Supply Cut Slider (0% - 60%)</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">Deficit &gt;35% triggers automatic RED Escalation.</p>
+      <input type="range" id="supply-slider" min="0" max="60" value="0" style="width:100%;" onchange="updateSupplyCut(this.value)">
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:0.85rem;margin-top:4px;">
+        <span>Cut: <span id="cut-label">0</span>%</span>
+        <span style="color:var(--danger)">Threshold: 35%</span>
+      </div>
+    </div>
+
+    <!-- Crew Shortage -->
+    <div class="card">
+      <h3 style="color:var(--accent);font-size:0.95rem;margin-bottom:6px;">Crew Shortage (2 → 1)</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">Plumbers on leave. Re-evaluates priority ranking.</p>
+      <button class="btn btn-sm btn-warning" onclick="runScenario('crew_shortage')">Simulate 1 Crew</button>
+    </div>
+
+    <!-- Heatwave -->
+    <div class="card">
+      <h3 style="color:var(--accent);font-size:0.95rem;margin-bottom:6px;">Atmospheric Heatwave</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">+5°C temperature spike; +20% demand surge.</p>
+      <button class="btn btn-sm btn-warning" onclick="runScenario('heatwave')">Simulate Heatwave</button>
+    </div>
+
+    <!-- Sensor Outage -->
+    <div class="card">
+      <h3 style="color:var(--accent);font-size:0.95rem;margin-bottom:6px;">IoT Sensor Outage</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Masks sensors; imputes from neighbours; marks DEGRADED.</p>
+      <select id="sensor-zone" style="width:100%;padding:6px;border-radius:6px;background:var(--bg);color:#fff;border:1px solid var(--border);margin-bottom:8px;font-size:0.85rem;">
+        <option value="Zone_C4" selected>Zone_C4 (Academic Blocks Wet Labs)</option>
+        <option value="Zone_C1">Zone_C1 (Campus Health Center)</option>
+        <option value="Zone_C2">Zone_C2 (Student Hostels A to D)</option>
+        <option value="Zone_C3">Zone_C3 (Central Mess RO Kiosks)</option>
+        <option value="Zone_C5">Zone_C5 (Central Library HVAC)</option>
+        <option value="Zone_C6">Zone_C6 (Sports Complex Lawns)</option>
+      </select>
+      <button class="btn btn-sm btn-warning" onclick="runScenario('sensor_outage', document.getElementById('sensor-zone').value)">Trigger Outage</button>
+    </div>
+
+    <!-- Inject Leak -->
+    <div class="card">
+      <h3 style="color:var(--accent);font-size:0.95rem;margin-bottom:6px;">Inject Pipe Leak (12h)</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Simulates physical pipe burst in selected zone.</p>
+      <select id="leak-zone" style="width:100%;padding:6px;border-radius:6px;background:var(--bg);color:#fff;border:1px solid var(--border);margin-bottom:8px;font-size:0.85rem;">
+        <option value="Zone_C3" selected>Zone_C3 (Central Mess RO Kiosks)</option>
+        <option value="Zone_C1">Zone_C1 (Campus Health Center)</option>
+        <option value="Zone_C2">Zone_C2 (Student Hostels A to D)</option>
+        <option value="Zone_C4">Zone_C4 (Academic Blocks)</option>
+        <option value="Zone_C5">Zone_C5 (Central Library HVAC)</option>
+        <option value="Zone_C6">Zone_C6 (Sports Complex)</option>
+      </select>
+      <button class="btn btn-sm btn-danger" onclick="runScenario('inject_leak', document.getElementById('leak-zone').value)">Inject Leak</button>
+    </div>
+
+    <!-- Conflicting Evidence -->
+    <div class="card">
+      <h3 style="color:var(--accent);font-size:0.95rem;margin-bottom:6px;">Conflicting Evidence</h3>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Acoustic says leak, but OHT tank balance says normal.</p>
+      <button class="btn btn-sm btn-warning" onclick="runScenario('conflicting_evidence', 'Zone_C2')">Trigger Contradiction</button>
+    </div>
+  </div>
+
+  <!-- Free-text scenario box -->
+  <div class="card" style="margin-top:16px;">
+    <h3 style="color:var(--accent);font-size:0.95rem;margin-bottom:6px;">💬 Natural Language Scenario Mapper</h3>
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:8px;">Type in plain English (e.g. "pipe burst in health clinic", "extreme hot weather", "crews on sick leave", "supply cut by 45%"):</p>
+    <div style="display:flex;gap:10px;">
+      <input type="text" id="freetext-input" placeholder="Enter scenario query…" style="flex:1;padding:8px 12px;border-radius:6px;background:var(--bg);color:#fff;border:1px solid var(--border);font-size:0.95rem;">
+      <button class="btn btn-primary" onclick="submitFreeText()">Simulate Query</button>
+    </div>
+  </div>
+
+  <!-- Before vs After Diff Output -->
+  <div id="diff-container" style="display:none;"></div>
+</div>
+
+<!-- TAB 5: SPECIAL OCCASION WATER REQUEST -->
+<div class="tab-pane" id="pane-events-tab">
+  <div class="section-header">
+    <h2>🎉 Special Occasion Water Demand Authorizer</h2>
+  </div>
+  <div class="grid-2col">
+    <div class="card">
+      <h3 style="margin-bottom:10px;color:var(--accent);font-size:1.05rem;">Event Specification</h3>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:0.8rem;color:var(--text-muted);display:block;">Event Name</label>
+        <input type="text" id="ev-name" value="Inter-Collegiate Tech & Cultural Fest" style="width:100%;padding:6px 10px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:#fff;font-size:0.9rem;">
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:0.8rem;color:var(--text-muted);display:block;">Target Zone</label>
+        <select id="ev-zone" style="width:100%;padding:6px 10px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:#fff;font-size:0.9rem;">
+          <option value="Zone_C4" selected>Zone_C4 (Academic Blocks & Auditorium)</option>
+          <option value="Zone_C5">Zone_C5 (Sports Complex & Stadium)</option>
+          <option value="Zone_C2">Zone_C2 (Student Hostels A to D)</option>
+          <option value="Zone_C3">Zone_C3 (Central Mess Dining)</option>
+          <option value="Zone_C1">Zone_C1 (Campus Health Center)</option>
+        </select>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:0.8rem;color:var(--text-muted);display:block;">Expected Attendees (Non-residential)</label>
+        <input type="number" id="ev-attendees" value="800" style="width:100%;padding:6px 10px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:#fff;font-size:0.9rem;">
+      </div>
+      <button class="btn btn-primary" onclick="submitEventRequest()" style="margin-top:8px;width:100%;">Evaluate Impact & Generate Decision Card</button>
+    </div>
+
+    <div class="card" id="event-evaluation-card">
+      <h3 style="margin-bottom:10px;color:var(--accent);font-size:1.05rem;">Impact Assessment & Recommendation</h3>
+      <p style="color:var(--text-muted);font-size:0.9rem;">Submit an event request to see before-vs-after shortage calculations and automated conditions.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 6: METRICS -->
+<div class="tab-pane" id="pane-metrics-tab">
+  <div class="section-header">
+    <h2>📊 System Performance & Governance Auditing Metrics</h2>
+    <span style="color:var(--success);font-weight:700;font-size:0.85rem;">Computed Live from TEST Data (2026-10-01 to 2026-10-15)</span>
+  </div>
+  <div class="grid-3col" id="metrics-grid"></div>
+
+  <div class="section-header" style="margin-top:20px;">
+    <h2>⚖️ Fairness & Ethical Guardrail Verification</h2>
+  </div>
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; font-size:0.9rem;">
+      <div><b>Guardrail-Locked Zones:</b> Zone_C1, Zone_C2, Zone_C3 (Tier 1)</div>
+      <div><b>Throttles Drafted for Locked Zones:</b> <span style="color:var(--success);font-weight:800;" id="m-locked-count">0</span> (Strict Target: 0)</div>
+      <div><b>Tier-1 Service Guarantee:</b> 100% Demand Met with Fresh Water</div>
+      <div><b>Inference Latency:</b> <span id="m-latency">0</span> ms (Local Model)</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- container -->
+
+<script>
+let state = null;
+let playTimer = null;
+let flowChart = null;
+let reservoirChart = null;
+
+// TAB SWITCHING
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'metrics-tab') loadMetrics();
+    if (btn.dataset.tab === 'live-ops' && state) renderCharts(state);
+  });
+});
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, opts);
+  return res.json();
+}
+async function postApi(path, body = {}) {
+  return api(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
+// MAIN STATE REFRESH
+async function refreshState() {
+  state = await api('/api/state');
+  renderTopBar(state);
+  renderZones(state);
+  renderDecisions(state);
+  renderOptimization(state);
+  renderCharts(state);
+}
+
+// RENDER TOP BAR
+function renderTopBar(s) {
+  document.getElementById('clock-display').textContent = s.timestamp.slice(0, 16);
+  const r = s.reservoir;
+
+  const resBadge = document.getElementById('res-badge');
+  resBadge.textContent = `Reservoir: ${r.current_level_pct}%`;
+  // Accurate color coding: below 25% is high risk / danger!
+  if (r.current_level_pct <= 25 || r.risk === 'high') {
+    resBadge.className = 'badge badge-high';
+  } else if (r.current_level_pct <= 40 || r.risk === 'medium') {
+    resBadge.className = 'badge badge-medium';
+  } else {
+    resBadge.className = 'badge badge-low';
+  }
+
+  const shortBadge = document.getElementById('shortage-badge');
+  shortBadge.textContent = `Shortage: ${r.days_to_25pct >= 90 ? 'Healthy (90+ d)' : r.days_to_25pct + ' days'}`;
+  shortBadge.className = 'badge badge-' + r.risk;
+
+  const llmBadge = document.getElementById('llm-badge');
+  llmBadge.textContent = `LLM: ${s.llm_status}`;
+  llmBadge.className = s.llm_status === 'live' ? 'badge badge-llm-live' : 'badge badge-llm-fallback';
+
+  const escBanner = document.getElementById('escalation-banner');
+  if (s.is_red_escalation) {
+    escBanner.classList.add('active');
+  } else {
+    escBanner.classList.remove('active');
+  }
+
+  const pending = s.decisions.filter(d => d.status === 'pending').length;
+  document.getElementById('pending-count').textContent = pending;
+}
+
+// RENDER ZONES (CLEAN FORMATTING & NO TEXT OVERLAP)
+function renderZones(s) {
+  const container = document.getElementById('zones-grid');
+  container.innerHTML = s.zone_status.map(z => {
+    const causeClass = z.pred_cause;
+    const causeLabel = z.pred_cause.replace(/_/g, ' ').toUpperCase();
+    const cleanName = z.zone_name.replace(/_/g, ' ');
+
+    return `
+      <div class="card zone-card ${causeClass}">
+        <!-- Header area with flex separation to prevent title/badge overlap -->
+        <div class="zone-header">
+          <div class="zone-title-box">
+            <div class="zone-name">${cleanName}</div>
+            <div class="zone-meta">${z.zone_id} · Tier ${z.vulnerability_tier} · ${z.pipe_material} (${z.pipe_age_years}y)</div>
+          </div>
+          ${z.ethical_guardrail_locked ? '<div class="lock-pill">🔒 GUARDRAIL</div>' : ''}
+        </div>
+
+        <!-- Diagnosis badge bar -->
+        <div class="zone-diagnosis">
+          <span class="diag-cause ${causeClass}">${causeLabel}</span>
+          <span class="diag-conf"><b>${z.confidence}%</b> conf</span>
+        </div>
+
+        <!-- Structured Telemetry 2x2 Grid -->
+        <div class="zone-stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Flow Rate</div>
+            <div class="stat-val">${z.flow_rate_lpm} <span style="font-weight:400;font-size:0.75rem;color:var(--text-muted)">/ ${z.expected_baseline_flow_lpm} LPM</span></div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Pressure</div>
+            <div class="stat-val">${z.pressure_psi} <span style="font-weight:400;font-size:0.75rem;color:var(--text-muted)">psi</span></div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Acoustic Vibration</div>
+            <div class="stat-val">${z.acoustic_vibration_db} <span style="font-weight:400;font-size:0.75rem;color:var(--text-muted)">dB</span></div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Tank Loss / Jitter</div>
+            <div class="stat-val">${z.oht_mass_balance_loss_pct}%</div>
+          </div>
+        </div>
+
+        ${z.degraded_confidence ? '<div style="color:var(--warning);font-size:0.78rem;margin-top:8px;">⚠️ Degraded: Sensor Imputed from Neighbours</div>' : ''}
+        ${z.needs_human_review ? '<div style="color:#f97316;font-size:0.78rem;margin-top:4px;">⚠️ Field Verification Recommended</div>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// RENDER DECISION CARDS
+function renderDecisions(s) {
+  const container = document.getElementById('decision-cards-container');
+  if (!s.decisions.length) {
+    container.innerHTML = '<div class="card"><p style="color:var(--text-muted)">No active decision cards.</p></div>';
+    return;
+  }
+
+  container.innerHTML = s.decisions.map(d => {
+    const isDecided = d.status === 'decided';
+    const causeClass = d.cause || 'normal';
+    return `
+      <div class="decision-card ${causeClass} ${isDecided ? 'decided' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+          <div>
+            <span class="badge" style="background:#1e293b;border:1px solid var(--border);color:var(--accent);margin-bottom:6px;">${d.type.toUpperCase()} · ${d.where}</span>
+            <h3 style="font-size:1.15rem;font-weight:800;">${d.what}</h3>
+            <div style="color:var(--text-muted);font-size:0.85rem;">Asset: <b>${d.asset_id || d.where}</b> | Time: ${d.timestamp}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.25rem;font-weight:900;color:${d.rs_per_day_at_risk>0?'var(--danger)':'var(--success)'};">
+              ₹${Math.round(d.rs_per_day_at_risk).toLocaleString()}/day
+            </div>
+            <div style="font-size:0.85rem;">Confidence: <b>${d.confidence}%</b> ${d.degraded_confidence?'(DEGRADED)':''}</div>
+          </div>
+        </div>
+
+        <div style="margin:8px 0;font-size:0.9rem;"><b>Why:</b> ${d.why}</div>
+
+        <div class="formula-box">
+          📐 <b>Formula:</b> ${d.loss_formula || 'Calculated via hydraulic regression'}<br>
+          <span style="font-size:0.78rem;color:var(--text-muted);">${d.persists_warning || ''}</span>
+        </div>
+
+        <div class="assumptions-box">
+          <b>Assumptions Applied:</b> ${(d.assumptions || []).join(' · ')}
+        </div>
+
+        <ul class="evidence-list">
+          ${(d.evidence || []).map(ev => `<li>📎 <span>${ev}</span></li>`).join('')}
+          ${(d.supporting_evidence || []).map(s => `<li style="color:var(--success);">✓ <span>${s}</span></li>`).join('')}
+          ${(d.contradicting_evidence || []).map(c => `<li style="color:var(--danger);">✗ <span>${c}</span></li>`).join('')}
+        </ul>
+
+        ${isDecided ? `
+          <div style="background:var(--surface-alt);padding:8px 12px;border-radius:6px;border-left:4px solid ${d.decision==='approve'?'var(--success)':'var(--danger)'};margin-top:10px;font-size:0.88rem;">
+            <b>Operator Decision:</b> ${d.decision.toUpperCase()} ${d.note ? `– "${d.note}"` : ''} at ${d.approved_at}
+          </div>
+          ${d.communications ? `
+            <div class="comms-output">
+              <b>📨 GENERATED DISPATCH COMMUNICATIONS:</b>\n
+              ${Object.entries(d.communications).map(([k,v]) => `\n[${k.toUpperCase()}]\n${v}\n`).join('')}
+            </div>
+          ` : ''}
+        ` : `
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;background:#090e1a;padding:10px;border-radius:6px;">
+            <input type="text" id="note-${d.id}" placeholder="Operator rationale / instruction…" style="flex:1;min-width:200px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:#fff;font-size:0.85rem;">
+            <button class="btn btn-success btn-sm" onclick="makeDecision('${d.id}', 'approve')">✓ Approve</button>
+            <button class="btn btn-warning btn-sm" onclick="makeDecision('${d.id}', 'modify')">✏ Modify</button>
+            <button class="btn btn-danger btn-sm" onclick="makeDecision('${d.id}', 'reject')">✗ Reject</button>
+          </div>
+        `}
+      </div>
+    `;
+  }).join('');
+}
+
+async function makeDecision(id, decision) {
+  const note = document.getElementById('note-' + id)?.value || '';
+  await postApi('/api/decision', { id, decision, note });
+  refreshState();
+}
+
+// RENDER OPTIMIZATION
+function renderOptimization(s) {
+  const opt = s.optimization;
+  document.getElementById('opt-demand').textContent = opt.total_demand_lpm;
+  document.getElementById('opt-fresh').textContent = opt.available_freshwater_lpm;
+  document.getElementById('opt-tier1').textContent = opt.tier1_demand_lpm;
+  document.getElementById('opt-deficit').textContent = opt.supply_deficit_pct + '%';
+
+  const solverBadge = document.getElementById('solver-badge');
+  solverBadge.textContent = opt.solver_status;
+  solverBadge.className = opt.is_red_escalation ? 'badge badge-high' : 'badge badge-low';
+
+  const tbody = document.querySelector('#allocation-table tbody');
+  tbody.innerHTML = (opt.allocation_table || []).map(a => `
+    <tr>
+      <td><b>${a.zone_name.replace(/_/g, ' ')}</b> (${a.zone_id})</td>
+      <td>Tier ${a.vulnerability_tier} ${a.ethical_guardrail_locked ? '🔒' : ''}</td>
+      <td>${a.demand_lpm}</td>
+      <td>${a.freshwater_lpm}</td>
+      <td>${a.greywater_lpm}</td>
+      <td><b style="color:${a.fulfilled_pct>=99?'var(--success)':'var(--warning)'}">${a.fulfilled_pct}%</b></td>
+      <td><span class="badge" style="background:#1e293b;border:1px solid var(--border);">${a.action_taken}</span></td>
+    </tr>
+  `).join('');
+}
+
+// RENDER CHARTS
+function renderCharts(s) {
+  const fc = s.forecast_chart || [];
+  if (!fc.length) return;
+
+  const labels = fc.map(d => d.timestamp.slice(5, 16));
+  const actualFlow = fc.map(d => d.actual_flow);
+  const fcFlow = fc.map(d => d.forecast_flow);
+  const resLevel = fc.map(d => d.reservoir_level);
+
+  if (flowChart) flowChart.destroy();
+  flowChart = new Chart(document.getElementById('flowChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Actual Flow (LPM)', data: actualFlow, borderColor: '#38bdf8', borderWidth: 2, pointRadius: 0, tension: 0.2 },
+        { label: 'HistGradientBoosting Forecast (LPM)', data: fcFlow, borderColor: '#22c55e', borderDash: [5, 4], borderWidth: 2, pointRadius: 0, tension: 0.2 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#cbd5e1' } } },
+      scales: {
+        x: { ticks: { color: '#64748b', maxTicksLimit: 8 } },
+        y: { ticks: { color: '#64748b' } }
+      }
+    }
+  });
+
+  if (reservoirChart) reservoirChart.destroy();
+  reservoirChart = new Chart(document.getElementById('reservoirChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Reservoir Level (%)', data: resLevel, borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.15)', fill: true, borderWidth: 2, pointRadius: 0, tension: 0.2 },
+        { label: 'Critical Threshold (25%)', data: labels.map(() => 25), borderColor: '#ef4444', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#cbd5e1' } } },
+      scales: {
+        x: { ticks: { color: '#64748b', maxTicksLimit: 8 } },
+        y: { min: 0, max: 100, ticks: { color: '#64748b' } }
+      }
+    }
+  });
+}
+
+// SCENARIO HANDLERS
+async function runPreset(key) {
+  const res = await postApi('/api/preset', { preset: key });
+  alert(`Applied Preset: ${res.description}`);
+  refreshState();
+}
+
+async function runScenario(type, zoneId = null, val = null) {
+  const res = await postApi('/api/scenario', { type, zone_id: zoneId, val });
+  showDiff(res);
+  refreshState();
+}
+
+function updateSupplyCut(val) {
+  document.getElementById('cut-label').textContent = val;
+  runScenario('supply_cut', null, parseFloat(val) / 100.0);
+}
+
+async function clearScenarios() {
+  await postApi('/api/scenario/clear');
+  document.getElementById('diff-container').style.display = 'none';
+  document.getElementById('supply-slider').value = 0;
+  document.getElementById('cut-label').textContent = 0;
+  refreshState();
+}
+
+async function submitFreeText() {
+  const q = document.getElementById('freetext-input').value;
+  if (!q) return;
+  const res = await postApi('/api/scenario/freetext', { query: q });
+  showDiff(res);
+  refreshState();
+}
+
+function showDiff(diff) {
+  const cont = document.getElementById('diff-container');
+  cont.style.display = 'block';
+  cont.innerHTML = `
+    <div class="diff-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="color:var(--warning);font-size:1.05rem;">⚡ BEFORE vs AFTER PLAN DIFFERENTIAL</h3>
+        <span class="diff-badge">${(diff.scenario || 'DYNAMIC ADAPTATION').toUpperCase()}</span>
+      </div>
+      <p style="font-size:0.9rem;"><b>Recovery Time Window:</b> ${diff.recovery_time}</p>
+      <p style="margin:4px 0;font-size:0.9rem;"><b>Updated Plan:</b> ${diff.new_plan}</p>
+      <h4 style="margin-top:10px;color:var(--accent);font-size:0.95rem;">Key Metric & Evidence Alterations:</h4>
+      <ul style="margin-left:20px;font-size:0.88rem;">
+        ${(diff.what_changed || []).map(c => `<li>→ ${c}</li>`).join('')}
+        ${(diff.evidence_changed || []).map(e => `<li>📎 ${e}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+// EVENT REQUEST
+async function submitEventRequest() {
+  const payload = {
+    name: document.getElementById('ev-name').value,
+    zone_id: document.getElementById('ev-zone').value,
+    attendees: parseInt(document.getElementById('ev-attendees').value) || 500
+  };
+  const card = await postApi('/api/event_request', payload);
+  const evalCard = document.getElementById('event-evaluation-card');
+  evalCard.innerHTML = `
+    <h3 style="color:var(--accent);font-size:1.05rem;">${card.what}</h3>
+    <div style="margin:8px 0;"><b>Decision Recommendation:</b> <span class="badge ${card.decision_recommendation==='APPROVE'?'badge-low':'badge-high'}">${card.decision_recommendation}</span></div>
+    <p style="font-size:0.88rem;"><b>Conditions Attached:</b> ${card.conditions}</p>
+    <div class="formula-box">${card.loss_formula}</div>
+    <p style="font-size:0.88rem;"><b>Shortage Runway:</b> Before: ${card.shortage_before.days_to_25pct}d (${card.shortage_before.risk}) → After: ${card.shortage_after.days_to_25pct}d (${card.shortage_after.risk})</p>
+    <p style="color:var(--text-muted);font-size:0.82rem;margin-top:8px;">Card has been pushed to Decision Queue with ID: <b>${card.id}</b></p>
+  `;
+  refreshState();
+}
+
+// METRICS LOADER
+async function loadMetrics() {
+  const m = await api('/api/metrics');
+  const cont = document.getElementById('metrics-grid');
+  let html = `
+    <div class="metric-box">
+      <div class="metric-title">Macro F1 Score</div>
+      <div class="metric-value">${(m.classification.macro_f1 * 100).toFixed(1)}%</div>
+      <div class="metric-sub">GradientBoosting across 4 classes</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-title">Leak Diagnostic F1</div>
+      <div class="metric-value">${(m.classification.per_cause.leak.f1 * 100).toFixed(1)}%</div>
+      <div class="metric-sub">P: ${(m.classification.per_cause.leak.precision*100).toFixed(0)}% | R: ${(m.classification.per_cause.leak.recall*100).toFixed(0)}%</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-title">Normal False Positive Rate</div>
+      <div class="metric-value">${(m.classification.false_positive_rate * 100).toFixed(2)}%</div>
+      <div class="metric-sub">Zero nuisance alarm objective</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-title">1h Flow Forecast MAPE</div>
+      <div class="metric-value">${m.forecast.mape_1h_flow}%</div>
+      <div class="metric-sub">Naive Baseline (lag_24h): ${m.forecast.baseline_mape_1h}%</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-title">24h Demand Forecast MAPE</div>
+      <div class="metric-value">${m.forecast.mape_24h_demand}%</div>
+      <div class="metric-sub">Naive Baseline (lag_24h): ${m.forecast.baseline_mape_24h}%</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-title">Groundedness Ratio</div>
+      <div class="metric-value">${m.groundedness_pct}%</div>
+      <div class="metric-sub">% cards with ≥2 evidence items</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-title">Median Time to Detect</div>
+      <div class="metric-value">${m.median_time_to_detect_hours} h</div>
+      <div class="metric-sub">Per anomaly incident</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-title">Dataset Recommended Action Agreement</div>
+      <div class="metric-value">${m.action_agreement_pct}%</div>
+      <div class="metric-sub">Benchmark reference comparison</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-title">Inference Latency</div>
+      <div class="metric-value">${m.inference_latency_ms} ms</div>
+      <div class="metric-sub">Local Scikit-Learn Model</div>
+    </div>
+  `;
+  cont.innerHTML = html;
+  document.getElementById('m-locked-count').textContent = m.fairness.locked_zone_restrictions;
+  document.getElementById('m-latency').textContent = m.inference_latency_ms;
+}
+
+// DEMO CONTROLLER (Replaces move forward / back buttons)
+const DEMO_STAGES = [
+  {
+    id: 'baseline',
+    label: 'Stage 1: Normal Baseline',
+    desc: 'Normal campus schedule: Baseline flow monitoring and optimal Linprog distribution.',
+    action: async () => {
+      await postApi('/api/scenario/clear');
+      await postApi('/api/reset');
+    }
+  },
+  {
+    id: 'preset_a',
+    label: 'Stage 2: Leak & Sensor Fault',
+    desc: 'Preset A (2026-09-03 15:00): Detected physical pipe leak in Zone_C2 (Hostels) and simultaneous IoT sensor fault in Zone_C5 (Sports).',
+    action: async () => {
+      await postApi('/api/preset', { preset: 'preset_a' });
+    }
+  },
+  {
+    id: 'preset_c',
+    label: 'Stage 3: Rain Preemption',
+    desc: 'Preset C (2026-09-08 16:00): Preemptive irrigation shutoff in Zone_C6 triggered by 84% 24h rainfall forecast.',
+    action: async () => {
+      await postApi('/api/preset', { preset: 'preset_c' });
+    }
+  },
+  {
+    id: 'preset_b',
+    label: 'Stage 4: Heatwave & RED Escalation',
+    desc: 'Preset B (2026-09-30 14:00): Heatwave (+5°C) + 40% municipal supply cut. Exceeds 35% threshold, triggering RED Escalation with Tier-1 Health Ward protected.',
+    action: async () => {
+      await postApi('/api/preset', { preset: 'preset_b' });
+    }
+  }
+];
+
+let demoStageIndex = 0;
+let demoAutoTourTimer = null;
+
+async function runDemoStep() {
+  if (demoAutoTourTimer) {
+    clearInterval(demoAutoTourTimer);
+    demoAutoTourTimer = null;
+  }
+  demoStageIndex = (demoStageIndex + 1) % DEMO_STAGES.length;
+  await applyDemoStage(demoStageIndex);
+}
+
+async function applyDemoStage(idx) {
+  demoStageIndex = idx;
+  const stage = DEMO_STAGES[idx];
+
+  const btn = document.getElementById('demoBtn');
+  if (btn) btn.innerHTML = `⚡ ${stage.label.split(':')[0]}: Next ❯`;
+
+  const sel = document.getElementById('demo-quick-select');
+  if (sel) sel.value = stage.id;
+
+  await stage.action();
+  await refreshState();
+  showDemoToast(stage.label, stage.desc);
+}
+
+async function onDemoSelect(val) {
+  if (val === 'step') {
+    startDemoAutoTour();
+    return;
+  }
+  const idx = DEMO_STAGES.findIndex(s => s.id === val);
+  if (idx !== -1) {
+    if (demoAutoTourTimer) { clearInterval(demoAutoTourTimer); demoAutoTourTimer = null; }
+    await applyDemoStage(idx);
+  }
+}
+
+function startDemoAutoTour() {
+  if (demoAutoTourTimer) {
+    clearInterval(demoAutoTourTimer);
+    demoAutoTourTimer = null;
+    const btn = document.getElementById('demoBtn');
+    if (btn) btn.innerHTML = '⚡ Live Demo';
+    return;
+  }
+
+  let step = 0;
+  applyDemoStage(step);
+  demoAutoTourTimer = setInterval(() => {
+    step = (step + 1) % DEMO_STAGES.length;
+    applyDemoStage(step);
+    if (step === DEMO_STAGES.length - 1) {
+      setTimeout(() => {
+        clearInterval(demoAutoTourTimer);
+        demoAutoTourTimer = null;
+        const btn = document.getElementById('demoBtn');
+        if (btn) btn.innerHTML = '⚡ Live Demo ↺';
+      }, 5000);
+    }
+  }, 4500);
+}
+
+function showDemoToast(title, desc) {
+  let toast = document.getElementById('demo-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'demo-toast';
+    toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:#0f172a; border:2px solid var(--accent); color:#fff; padding:14px 20px; border-radius:10px; max-width:440px; box-shadow:0 10px 30px rgba(0,0,0,0.7); z-index:9999; font-size:0.9rem; transition:opacity 0.3s ease;';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<div style="font-weight:800; color:var(--accent); margin-bottom:4px; font-size:1rem;">⚡ ${title}</div><div>${desc}</div>`;
+  toast.style.opacity = '1';
+  toast.style.display = 'block';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => { toast.style.display = 'none'; }, 300);
+  }, 4200);
+}
+
+// SIMULATION & RESET CONTROLS
+async function advanceClock() {
+  await postApi('/api/advance');
+  refreshState();
+}
+async function stepBack() {
+  await postApi('/api/step_back');
+  refreshState();
+}
+async function resetSim() {
+  if (demoAutoTourTimer) { clearInterval(demoAutoTourTimer); demoAutoTourTimer = null; }
+  demoStageIndex = 0;
+  const btn = document.getElementById('demoBtn');
+  if (btn) btn.innerHTML = '⚡ Demo: Stage 1';
+  const sel = document.getElementById('demo-quick-select');
+  if (sel) sel.value = 'baseline';
+
+  await postApi('/api/scenario/clear');
+  await postApi('/api/reset');
+  document.getElementById('diff-container').style.display = 'none';
+  refreshState();
+  showDemoToast('Simulation Reset', 'System reset to base October 1 state with all scenarios cleared.');
+}
+
+// INITIAL LOAD
+refreshState();
+</script>
+</body>
+</html>

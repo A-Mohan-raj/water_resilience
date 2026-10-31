@@ -1,0 +1,30 @@
+[
+  {
+    "timestamp": "2026-09-03 15:00:00",
+    "card_id": "REP-Zone_C5-2026-09-03-1",
+    "type": "repair_dispatch",
+    "decision": "approve",
+    "operator_note": "",
+    "zone": "Zone_C5",
+    "evidence_snapshot": {
+      "what": "Isolate & dispatch plumber for SENSOR FAULT",
+      "why": "Flow 326.6 LPM vs baseline 109.4 LPM. Loss: 265.88 kL/day (\u20b93,722/day). Acoustic: 36.9 dB (threshold.",
+      "confidence": 100.0,
+      "expected_kl_saved": 265.88,
+      "rs_per_day_at_risk": 3722.0,
+      "loss_formula": "loss_L_per_day = (326.6 - 109.4) * 60 * 24 * 0.85 = 265877 L/day",
+      "assumptions": [
+        "Water tariff: \u20b914/kL",
+        "Repair cost: \u20b915000",
+        "Response dispatch cost: \u20b92000",
+        "Recovery factor: 0.85",
+        "Zone vulnerability tier 3 (weight 1.0x)"
+      ],
+      "supporting_evidence": [
+        "Telemetry packet jitter 394 ms > p95 (133 ms)",
+        "Hydraulic & acoustic signals normal (isolated sensor glitch)"
+      ],
+      "contradicting_evidence": []
+    }
+  }
+]
